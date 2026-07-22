@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TimeTracking · TT-0106834</title>
+<style>
+  :root{
+    --ink:#080707; --label:#514f4d; --line:#e5e5e5; --soft:#f3f2f2; --bg:#eef1f6;
+    --blue:#0176d3; --blue-dark:#014486; --orange:#f97e5b;
+    --green:#2e844a; --amber:#dd7a01; --violet:#5867e8; --red:#ba0517;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); padding:16px;
+    font-family:"Salesforce Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+    font-size:13px; color:var(--ink);
+  }
+  .page{max-width:1240px; margin:0 auto}
+  .card{background:#fff; border:1px solid var(--line); border-radius:4px; margin-bottom:12px; box-shadow:0 1px 1px rgba(0,0,0,.04)}
+
+  /* ── Record header ────────────────────────────── */
+  .rec-head{display:flex; align-items:center; gap:12px; padding:10px 16px}
+  .icon{
+    width:32px; height:32px; border-radius:5px; background:var(--orange);
+    display:flex; align-items:center; justify-content:center; color:#fff; font-size:16px; flex-shrink:0;
+  }
+  .rec-head .meta{flex:1; min-width:0}
+  .eyebrow{font-size:11px; color:var(--label); line-height:1.3}
+  .rec-head h1{margin:0; font-size:18px; font-weight:600; letter-spacing:-.01em}
+  .actions{display:flex; gap:5px; flex-wrap:wrap; align-items:center}
+  .btn{
+    padding:4px 12px; border:1px solid #c9c7c5; border-radius:4px; background:#fff;
+    font:inherit; font-size:12.5px; color:var(--blue); cursor:pointer; white-space:nowrap; line-height:20px;
+  }
+  .btn:hover{background:var(--soft)}
+  .btn-primary{background:var(--blue); border-color:var(--blue); color:#fff; font-weight:600}
+  .btn-primary:hover{background:var(--blue-dark)}
+  .btn-danger{border-color:#c9c7c5; color:var(--red)}
+  .btn-danger:hover{background:#fdeceb; border-color:var(--red)}
+
+  .quicklinks{display:flex; gap:20px; padding:8px 16px; border-top:1px solid var(--line); font-size:12px}
+  .quicklinks a{color:var(--blue); text-decoration:none; display:flex; align-items:center; gap:6px}
+  .quicklinks a:hover{text-decoration:underline}
+  .sq{width:10px; height:10px; border-radius:2px}
+
+  .tabsbar{display:flex; padding:0 16px; border-top:1px solid var(--line)}
+  .tab{
+    padding:11px 14px; border:0; background:none; font:inherit; font-size:13px;
+    color:var(--blue); cursor:pointer; border-bottom:3px solid transparent;
+  }
+  .tab:hover{color:var(--blue-dark)}
+  .tab.active{color:var(--ink); font-weight:600; border-bottom-color:var(--blue)}
+
+  /* ── Sections & fields ────────────────────────── */
+  .section-head{
+    display:flex; align-items:center; gap:8px;
+    padding:8px 16px; background:var(--soft); border-bottom:1px solid var(--line);
+    font-weight:700; font-size:13px;
+  }
+  .section-head .caret{color:var(--label); font-size:10px}
+  .cols{display:grid; grid-template-columns:1fr 1fr; gap:0 48px; padding:12px 16px 16px}
+  .fld{
+    display:grid; grid-template-columns:170px 1fr 24px; gap:12px; align-items:start;
+    padding:8px 0; border-bottom:1px solid #f0f0f0; min-height:34px;
+  }
+  .fld .k{color:var(--label); line-height:1.5}
+  .fld .v{font-weight:700; line-height:1.5; word-break:break-word}
+  .fld .v.norm{font-weight:400}
+  .pencil{
+    border:0; background:none; cursor:pointer; color:#706e6b; font-size:12px;
+    padding:2px 4px; border-radius:3px; justify-self:end; line-height:1;
+  }
+  .pencil:hover{background:var(--soft); color:var(--blue)}
+  .pencil .pi{display:inline-block; transform:scaleX(-1)}
+  .fld input.inline-edit, .fld textarea.inline-edit{
+    width:100%; font:inherit; font-size:13px; color:var(--ink);
+    padding:4px 8px; border:1px solid var(--blue); border-radius:4px;
+    outline:2px solid rgba(1,118,211,.25); outline-offset:-1px; background:#fff;
+  }
+  .fld textarea.inline-edit{resize:vertical; min-height:52px}
+  .pencil.saving{color:var(--green)}
+
+  /* ── Task detail view ─────────────────────────── */
+  .task-view{display:none}
+  .task-view.active{display:block}
+  .icon.task-icon{background:#3ba755}
+  .tfld{
+    padding:8px 0 6px; border-bottom:1px solid #dddbda; margin-bottom:12px;
+    display:grid; grid-template-columns:1fr 24px; align-items:end; gap:8px;
+  }
+  .tfld .tk{font-size:12px; color:var(--label); margin-bottom:5px}
+  .tfld .tv{font-size:13.5px; min-height:20px; word-break:break-word}
+  .tfld .tv a{color:var(--blue); text-decoration:none; border-bottom:1px solid #b9d9f3}
+  .tfld .tv a:hover{text-decoration:underline}
+  .tfld .req{color:var(--red); margin-left:2px}
+  .tcols{display:grid; grid-template-columns:1fr 1fr; gap:0 56px; padding:16px 22px 8px}
+  .av-round{
+    display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px;
+    border-radius:50%; background:var(--violet); color:#fff; font-size:9px; font-weight:600;
+    margin-right:7px; vertical-align:-4px;
+  }
+  .task-crumb{padding:10px 22px; border-bottom:1px solid var(--line); display:flex; gap:44px; font-size:12px}
+  .task-crumb .tk{color:var(--label); font-size:11.5px; margin-bottom:3px}
+  .pill-status{
+    display:inline-block; padding:2px 10px; border-radius:11px; font-size:12px; font-weight:700;
+  }
+  .pill-open{background:#fef4e6; color:var(--amber)}
+  .pill-closed{background:#e6f5ea; color:var(--green)}
+  .warn{
+    margin:0 22px 14px; padding:9px 12px; border-radius:4px; background:#fdeceb;
+    color:#8a1a10; font-size:12.5px; display:none;
+  }
+  .warn.show{display:block}
+  .task-link{color:var(--blue); cursor:pointer; text-decoration:none; font-weight:600}
+  .task-link:hover{text-decoration:underline}
+  .spacer{visibility:hidden}
+  .chk{width:14px; height:14px; accent-color:#514f4d}
+  .grouplabel{padding:16px 0 4px; color:var(--label); border-bottom:1px solid #f0f0f0}
+  .avatar-inline{
+    display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px;
+    border-radius:3px; background:var(--violet); color:#fff; font-size:9px; font-weight:600;
+    margin-right:6px; vertical-align:-3px;
+  }
+
+  /* ── Status pill ──────────────────────────────── */
+  .status{display:inline-flex; align-items:center; gap:8px; font-weight:700}
+  .dot{width:11px; height:11px; border-radius:50%; flex-shrink:0}
+  .s-red{color:var(--red)}      .d-red{background:var(--red)}
+  .s-amber{color:var(--amber)}  .d-amber{background:var(--amber)}
+  .s-blue{color:var(--blue)}    .d-blue{background:var(--blue)}
+  .s-green{color:var(--green)}  .d-green{background:var(--green)}
+
+  /* ── Activity ─────────────────────────────────── */
+  .subtabs{display:flex; border-bottom:1px solid var(--line); background:var(--soft)}
+  .subtab{
+    padding:9px 16px; border:0; border-right:1px solid var(--line); background:none;
+    font:inherit; font-size:12.5px; color:var(--blue); cursor:pointer;
+  }
+  .subtab.active{background:#fff; color:var(--ink); font-weight:600}
+  .composer{padding:14px 16px}
+  .composer label{display:block; font-size:12px; color:var(--label); margin-bottom:4px}
+  .composer input,.composer select,.composer textarea{
+    width:100%; padding:6px 10px; font:inherit; font-size:13px;
+    border:1px solid #c9c7c5; border-radius:4px; margin-bottom:10px; background:#fff; color:var(--ink);
+  }
+  .composer input:focus,.composer select:focus,.composer textarea:focus{
+    outline:2px solid var(--blue); outline-offset:-2px; border-color:var(--blue);
+  }
+  .composer textarea{resize:vertical}
+  .cbrow{display:flex; align-items:center; gap:8px; margin:2px 0 12px; font-size:12.5px; color:var(--label)}
+  .right{display:flex; justify-content:flex-end}
+
+  .listrow{
+    display:flex; gap:12px; align-items:flex-start;
+    padding:12px 16px; border-bottom:1px solid #f0f0f0;
+  }
+  .av{
+    width:28px; height:28px; border-radius:50%; background:var(--violet); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-size:10.5px; font-weight:600; flex-shrink:0;
+  }
+  .av.sys{background:#706e6b} .av.task{background:var(--amber); border-radius:4px}
+  .listrow .body{flex:1; min-width:0}
+  .who{font-weight:600}
+  .when{color:#706e6b; font-size:11.5px; margin-left:8px}
+  .txt{margin-top:3px; color:#3e3e3c; line-height:1.5}
+  .empty{padding:22px 16px; color:#706e6b; text-align:center}
+  .pane{display:none} .pane.active{display:block}
+
+
+  /* ── Related lists ────────────────────────────── */
+  .rl-head{
+    display:flex; align-items:center; gap:10px; padding:9px 16px; border-bottom:1px solid var(--line);
+  }
+  .rl-icon{
+    width:22px; height:22px; border-radius:4px; display:flex; align-items:center;
+    justify-content:center; color:#fff; font-size:11px; flex-shrink:0;
+  }
+  .rl-head h2{margin:0; font-size:13px; font-weight:700; flex:1}
+  .rl-head .tools{display:flex; gap:5px}
+  .icon-btn{
+    width:26px; height:26px; border:1px solid #c9c7c5; border-radius:4px; background:#fff;
+    color:var(--orange); cursor:pointer; font-size:12px; line-height:1;
+  }
+  .icon-btn:hover{background:var(--soft)}
+  .dropzone{
+    margin:14px; padding:20px; border:1px dashed #c9c7c5; border-radius:4px; text-align:center;
+  }
+  .upload{
+    border:1px solid #c9c7c5; border-radius:4px; background:#fff; color:var(--orange);
+    font:inherit; font-size:12.5px; font-weight:600; padding:5px 14px; cursor:pointer;
+  }
+  .upload:hover{background:var(--soft)}
+  .dropzone .or{margin-top:9px; color:#706e6b; font-size:12px}
+  .rl-meta{padding:7px 16px; font-size:11.5px; color:#706e6b}
+  table.hist{width:100%; border-collapse:collapse; font-size:12.5px}
+  table.hist th{
+    text-align:left; font-weight:600; color:var(--label); padding:7px 10px;
+    border-bottom:1px solid var(--line); border-top:1px solid var(--line); white-space:nowrap;
+  }
+  table.hist th .car{color:#706e6b; font-size:9px; margin-left:4px}
+  table.hist td{padding:8px 10px; border-bottom:1px solid #f0f0f0}
+  table.hist td.num{color:#706e6b; width:34px}
+  .viewall{display:block; text-align:center; padding:10px; color:var(--blue); font-weight:600; font-size:12.5px; text-decoration:none}
+  .viewall:hover{text-decoration:underline; background:var(--soft)}
+
+  @media(max-width:860px){
+    .cols{grid-template-columns:1fr}
+    .fld{grid-template-columns:150px 1fr 24px}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ══ HEADER ══ -->
+  <div class="card">
+    <div class="rec-head">
+      <div class="icon">⏱</div>
+      <div class="meta">
+        <div class="eyebrow">TimeTracking</div>
+        <h1>TT-0106834</h1>
+      </div>
+      <div class="actions">
+        <button class="btn">+ Follow</button>
+        <button class="btn">New Note</button>
+        <button class="btn">Delete</button>
+        <button class="btn">Clone</button>
+        <button class="btn">Edit</button>
+        <button class="btn btn-primary" id="approveBtn">Approve</button>
+        <button class="btn btn-danger" id="withdrawBtn" style="display:none">Withdraw approval</button>
+      </div>
+    </div>
+    <div class="quicklinks">
+      <a href="#"><span class="sq" style="background:#5867e8"></span>Files (0)</a>
+      <a href="#"><span class="sq" style="background:#e3066a"></span>Notes (0)</a>
+      <a href="#"><span class="sq" style="background:#0176d3"></span>TimeTracking History (3)</a>
+    </div>
+    <div class="tabsbar">
+      <button class="tab active" data-pane="details">Details</button>
+      <button class="tab" data-pane="activity">Activity</button>
+      <button class="tab" data-pane="feed">Feed</button>
+    </div>
+  </div>
+
+  <!-- ══ DETAILS ══ -->
+  <div class="pane active" id="details">
+    <div class="card">
+      <div class="section-head"><span class="caret">▾</span>Information</div>
+      <div class="cols">
+        <!-- left column -->
+        <div>
+          <div class="fld"><div class="k">Order</div><div class="v norm">00000874</div><button class="pencil"><span class="pi">✎</span></button></div>
+          <div class="fld"><div class="k">Order Product</div><div class="v norm">0000002435</div><button class="pencil"><span class="pi">✎</span></button></div>
+          <div class="fld"><div class="k">Time-Tracking Case</div><div class="v norm">00012145</div><button class="pencil"><span class="pi">✎</span></button></div>
+          <div class="fld"><div class="k">TimeTrack Name</div><div class="v norm">TT-0106834</div><div class="spacer"></div></div>
+          <div class="fld">
+            <div class="k">TimeTrack Description</div>
+            <div class="v">Reviewed ticket, checked errors and proposed solutions to Nicole, awaiting feedback</div>
+            <button class="pencil"><span class="pi">✎</span></button>
+          </div>
+          <div class="fld"><div class="k">Non-Billable reason</div><div class="v norm"></div><button class="pencil"><span class="pi">✎</span></button></div>
+          <div class="fld">
+            <div class="k">Approval status</div>
+            <div class="v"><span class="status s-red" id="statusText"><span class="dot d-red"></span>Not approved yet</span></div>
+            <div class="spacer"></div>
+          </div>
+        </div>
+        <!-- right column -->
+        <div>
+          <div class="fld"><div class="k">Order Number ⓘ</div><div class="v norm">00000874</div><div class="spacer"></div></div>
+          <div class="fld"><div class="k">TimeTrack Manager</div><div class="v norm">Dimitrios Bithyzis</div><button class="pencil"><span class="pi">✎</span></button></div>
+          <div class="fld"><div class="k">Time Tracking Owner</div><div class="v norm"><span class="avatar-inline">DB</span>Dimitrios Bithyzis</div><button class="pencil"><span class="pi">✎</span></button></div>
+          <div class="fld"><div class="k">TimeTrack Date</div><div class="v norm">26.03.2026</div><button class="pencil"><span class="pi">✎</span></button></div>
+          <div class="fld"><div class="k">TimeTrack Hours</div><div class="v norm">1,00</div><button class="pencil"><span class="pi">✎</span></button></div>
+          <div class="fld"><div class="k">Discount</div><div class="v norm"></div><button class="pencil"><span class="pi">✎</span></button></div>
+          <div class="fld"><div class="k">Jira Task Id</div><div class="v norm">KAL-827</div><button class="pencil"><span class="pi">✎</span></button></div>
+          <div class="fld"><div class="k">Jira Task Title</div><div class="v norm"></div><button class="pencil"><span class="pi">✎</span></button></div>
+
+          <div class="grouplabel">Billable Score</div>
+          <div class="fld"><div class="k">Billable</div><div class="v"><input type="checkbox" class="chk" checked></div><button class="pencil"><span class="pi">✎</span></button></div>
+          <div class="fld"><div class="k">TimeTracking Adjustment</div><div class="v"><input type="checkbox" class="chk"></div><button class="pencil"><span class="pi">✎</span></button></div>
+          <div class="fld"><div class="k">Publish to Customer ⓘ</div><div class="v"><input type="checkbox" class="chk" checked></div><button class="pencil"><span class="pi">✎</span></button></div>
+
+          <div class="fld" style="margin-top:14px"><div class="k">Hours Calculation</div><div class="v norm">1,00</div><div class="spacer"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-head"><span class="caret">▾</span>System Information</div>
+      <div class="cols">
+        <div>
+          <div class="fld"><div class="k">Created By</div><div class="v norm"><span class="avatar-inline">DB</span>Dimitrios Bithyzis, 26.03.2026, 14:51</div><div class="spacer"></div></div>
+          <div class="fld"><div class="k">Yesterdays Helper Checkbox</div><div class="v"><input type="checkbox" class="chk"></div><div class="spacer"></div></div>
+        </div>
+        <div>
+          <div class="fld"><div class="k">Last Modified By</div><div class="v norm"><span class="avatar-inline">DB</span>Dimitrios Bithyzis, 26.03.2026, 14:51</div><div class="spacer"></div></div>
+          <div class="fld"><div class="k">Order Name</div><div class="v norm">IMP – Support February 2026</div><div class="spacer"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="rl-head">
+        <div class="rl-icon" style="background:#5867e8">🗀</div>
+        <h2>Files (0)</h2>
+        <div class="tools"><button class="btn">Add Files</button></div>
+      </div>
+      <div class="dropzone">
+        <button class="upload">⬆ Upload Files</button>
+        <div class="or">Or drop files</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="rl-head">
+        <div class="rl-icon" style="background:#e3066a">🗐</div>
+        <h2>Notes (0)</h2>
+        <div class="tools"><button class="btn">New</button></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="rl-head">
+        <div class="rl-icon" style="background:var(--orange)">⏱</div>
+        <h2>TimeTracking History (3)</h2>
+        <div class="tools">
+          <button class="icon-btn" title="Settings">⚙</button>
+          <button class="icon-btn" title="Refresh">⟳</button>
+        </div>
+      </div>
+      <div class="rl-meta">3 items · Sorted by Date · Updated a few seconds ago</div>
+      <table class="hist">
+        <thead>
+          <tr>
+            <th></th>
+            <th>Date <span class="car">▾</span></th>
+            <th>Field <span class="car">▾</span></th>
+            <th>User <span class="car">▾</span></th>
+            <th>Original V… <span class="car">▾</span></th>
+            <th>New Value <span class="car">▾</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="num">1</td><td>26.03.2026, 14:51</td><td>Created.</td><td>Dimitrios Bithyzis</td><td></td><td></td></tr>
+          <tr><td class="num">2</td><td>26.03.2026, 14:51</td><td>TimeTrack Name</td><td>Dimitrios Bithyzis</td><td></td><td>TT-0106834</td></tr>
+          <tr><td class="num">3</td><td>26.03.2026, 14:51</td><td>Total Hours</td><td>Dimitrios Bithyzis</td><td></td><td>1</td></tr>
+        </tbody>
+      </table>
+      <a class="viewall" href="#">View All</a>
+    </div>
+  </div>
+
+  <!-- ══ ACTIVITY ══ -->
+  <div class="pane" id="activity">
+    <div class="card">
+      <div class="subtabs">
+        <button class="subtab active">New Task</button>
+        <button class="subtab">Log a Call</button>
+        <button class="subtab">New Event</button>
+      </div>
+      <div class="composer">
+        <label for="tSubject">Subject</label>
+        <input type="text" id="tSubject" placeholder="e.g. Please clarify the work description">
+        <label for="tAssignee">Assigned to</label>
+        <select id="tAssignee">
+          <option>Dimitrios Bithyzis — Time Tracking Owner</option>
+          <option>Time tracker creator</option>
+        </select>
+        <div class="cbrow"><input type="checkbox" class="chk" id="notifyTL" checked><label for="notifyTL" style="margin:0">Inform Team Lead</label></div>
+        <label for="tComment">Comment</label>
+        <textarea id="tComment" rows="3" placeholder="What needs to be clarified?"></textarea>
+        <div class="right"><button class="btn btn-primary" id="saveTask">Save task</button></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-head"><span class="caret">▾</span>Open Tasks</div>
+      <div id="taskList"><div class="empty">No open tasks.</div></div>
+    </div>
+
+    <!-- Task detail -->
+    <div class="task-view" id="taskView">
+      <div class="card">
+        <div class="rec-head">
+          <div class="icon task-icon">☑</div>
+          <div class="meta">
+            <div class="eyebrow">Task</div>
+            <h1 id="tvTitle">Test</h1>
+          </div>
+          <div class="actions">
+            <button class="btn">+ Follow</button>
+            <button class="btn" id="tvComplete">✓ Mark Complete</button>
+            <button class="btn">Edit Comments</button>
+            <button class="btn">Change Date</button>
+            <button class="btn" id="tvBack">Back to list</button>
+          </div>
+        </div>
+        <div class="task-crumb">
+          <div><div class="tk">Name</div><div>&mdash;</div></div>
+          <div><div class="tk">Related To</div><div><a href="#" style="color:var(--blue); text-decoration:none">TT-0106834</a></div></div>
+        </div>
+        <div class="tabsbar">
+          <button class="tab active">Details</button>
+          <button class="tab">Related</button>
+          <button class="tab">Chatter</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-head"><span class="caret">▾</span>Task Information</div>
+        <div class="tcols">
+          <div>
+            <div class="tfld"><div><div class="tk">Subject</div><div class="tv" id="tvSubject">Test</div></div><button class="pencil"><span class="pi">✎</span></button></div>
+            <div class="tfld"><div><div class="tk">Assigned To</div><div class="tv"><span class="av-round">DB</span><a href="#">Dimitrios Bithyzis</a></div></div><button class="pencil"><span class="pi">✎</span></button></div>
+            <div class="tfld"><div><div class="tk">Name</div><div class="tv">&mdash;</div></div><button class="pencil"><span class="pi">✎</span></button></div>
+            <div class="tfld"><div><div class="tk">Order Product</div><div class="tv">0000002435</div></div><div class="spacer"></div></div>
+            <div class="tfld"><div><div class="tk">Comments</div><div class="tv" id="tvComments">&mdash;</div></div><button class="pencil"><span class="pi">✎</span></button></div>
+          </div>
+          <div>
+            <div class="tfld"><div><div class="tk">Due Date</div><div class="tv">Immediately</div></div><div class="spacer"></div></div>
+            <div class="tfld"><div><div class="tk">Related To</div><div class="tv"><a href="#">TT-0106834</a></div></div><div class="spacer"></div></div>
+            <div class="tfld">
+              <div>
+                <div class="tk">Feedback TT Owner<span class="req">*</span></div>
+                <div class="tv" id="tvFeedback">&mdash;</div>
+              </div>
+              <button class="pencil" id="tvFeedbackPencil"><span class="pi">✎</span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-head"><span class="caret">▾</span>Additional Information</div>
+        <div class="tcols">
+          <div>
+            <div class="tfld"><div><div class="tk">Priority</div><div class="tv">Normal</div></div><button class="pencil"><span class="pi">✎</span></button></div>
+            <div class="tfld"><div><div class="tk">Status</div><div class="tv"><span class="pill-status pill-open" id="tvStatus">Open</span></div></div><div class="spacer"></div></div>
+          </div>
+          <div></div>
+        </div>
+        <div class="warn" id="tvWarn">Feedback TT Owner is required before the task can be closed.</div>
+      </div>
+
+      <div class="card">
+        <div class="section-head"><span class="caret">▾</span>System Information</div>
+        <div class="tcols">
+          <div><div class="tfld"><div><div class="tk">Created By</div><div class="tv"><span class="av-round">JT</span><a href="#">Julijana Teodosić</a>, 22.07.2026, 21:47</div></div><div class="spacer"></div></div></div>
+          <div><div class="tfld"><div><div class="tk">Last Modified By</div><div class="tv"><span class="av-round">JT</span><a href="#">Julijana Teodosić</a>, 22.07.2026, 21:47</div></div><div class="spacer"></div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ FEED ══ -->
+  <div class="pane" id="feed">
+    <div class="card">
+      <div class="composer">
+        <input type="text" id="postText" placeholder="Share an update…" style="margin-bottom:10px">
+        <div class="right"><button class="btn btn-primary" id="postBtn">Share</button></div>
+      </div>
+      <div id="feedList">
+        <div class="listrow">
+          <div class="av sys">SY</div>
+          <div class="body">
+            <div><span class="who">System</span><span class="when">26.03.2026, 14:51</span></div>
+            <div class="txt">Time tracker created by Dimitrios Bithyzis.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const STATES = {
+  red:   {c:'red',   t:'Not approved yet'},
+  amber: {c:'amber', t:'Reviewed — open task'},
+  blue:  {c:'blue',  t:'Reviewed — task closed, pending PM approval'},
+  green: {c:'green', t:'Approved'}
+};
+
+let openTasks = 0;
+let hadTask   = false;
+let approved  = false;
+
+function render(){
+  const key = approved ? 'green' : (openTasks > 0 ? 'amber' : (hadTask ? 'blue' : 'red'));
+  const s = STATES[key];
+  const el = document.getElementById('statusText');
+  el.className = 'status s-' + s.c;
+  el.innerHTML = `<span class="dot d-${s.c}"></span>${s.t}`;
+  document.getElementById('approveBtn').style.display  = approved ? 'none' : '';
+  document.getElementById('withdrawBtn').style.display = approved ? '' : 'none';
+}
+
+function post(who, initials, text, kind){
+  const d = document.createElement('div');
+  d.className = 'listrow';
+  d.innerHTML = `<div class="av ${kind||''}">${initials}</div>
+    <div class="body"><div><span class="who">${who}</span><span class="when">${new Date().toLocaleString('en-GB')}</span></div>
+    <div class="txt">${text}</div></div>`;
+  document.getElementById('feedList').prepend(d);
+}
+
+/* tabs */
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
+  document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+  document.querySelectorAll('.pane').forEach(x => x.classList.remove('active'));
+  t.classList.add('active');
+  document.getElementById(t.dataset.pane).classList.add('active');
+});
+document.querySelectorAll('.subtab').forEach(t => t.onclick = () => {
+  document.querySelectorAll('.subtab').forEach(x => x.classList.remove('active'));
+  t.classList.add('active');
+});
+
+/* approve / withdraw */
+document.getElementById('approveBtn').onclick = () => {
+  approved = true; render();
+  post('Project Manager','PM','Time tracker approved.');
+};
+document.getElementById('withdrawBtn').onclick = () => {
+  approved = false; render();
+  post('Project Manager','PM','Approval withdrawn — time tracker returned to review.');
+};
+
+/* create task */
+document.getElementById('saveTask').onclick = () => {
+  const subj = document.getElementById('tSubject').value.trim() || 'Clarification requested';
+  const who  = document.getElementById('tAssignee').value;
+  const cmt  = document.getElementById('tComment').value.trim();
+  const tl   = document.getElementById('notifyTL').checked;
+  const list = document.getElementById('taskList');
+  if(openTasks === 0) list.innerHTML = '';
+
+  const row = document.createElement('div');
+  row.className = 'listrow';
+  row.innerHTML = `<div class="av task">TA</div>
+    <div class="body"><div><span class="who">${subj}</span><span class="when">assigned to ${who}${tl ? ' · Team Lead informed' : ''}</span></div>
+    <div class="txt">${cmt || 'No further comment.'}</div></div>`;
+
+  const open = document.createElement('button');
+  open.className = 'btn';
+  open.textContent = 'Open task';
+  open.onclick = () => openTask(subj, cmt, row);
+  row.appendChild(open);
+  list.appendChild(row);
+
+  openTasks++; hadTask = true; approved = false;
+  document.getElementById('tSubject').value = '';
+  document.getElementById('tComment').value = '';
+  render();
+  post('System','SY',`Task created and assigned to ${who}${tl ? ', Team Lead informed' : ''}: ${subj}`,'sys');
+};
+
+/* chatter post */
+document.getElementById('postBtn').onclick = () => {
+  const v = document.getElementById('postText').value.trim();
+  if(!v) return;
+  post('Project Manager','PM', v);
+  document.getElementById('postText').value = '';
+};
+
+
+/* ── inline field editing ─────────────────────── */
+document.querySelectorAll('.fld').forEach(fld => {
+  const pencil = fld.querySelector('.pencil');
+  if(!pencil) return;
+  const val = fld.querySelector('.v');
+  const cb  = val.querySelector('input[type=checkbox]');
+
+  pencil.onclick = () => {
+    if(cb){ cb.checked = !cb.checked; return; }          // checkbox: just toggle
+    if(fld.querySelector('.inline-edit')) return;        // already editing
+
+    const original = val.textContent.trim();
+    const long = original.length > 40;
+    const input = document.createElement(long ? 'textarea' : 'input');
+    input.className = 'inline-edit';
+    input.value = original;
+    val.innerHTML = '';
+    val.appendChild(input);
+    input.focus();
+    input.select();
+
+    const commit = () => {
+      const next = input.value.trim();
+      val.textContent = next;
+      pencil.classList.add('saving');
+      setTimeout(() => pencil.classList.remove('saving'), 600);
+    };
+    input.addEventListener('blur', commit);
+    input.addEventListener('keydown', e => {
+      if(e.key === 'Enter' && !long){ e.preventDefault(); input.blur(); }
+      if(e.key === 'Escape'){ input.value = original; input.blur(); }
+    });
+  };
+});
+
+
+/* ── task detail view ─────────────────────────── */
+let currentTask = null;
+
+function openTask(subject, comments, row){
+  currentTask = {subject, row, feedback:''};
+  document.getElementById('tvTitle').textContent    = subject;
+  document.getElementById('tvSubject').textContent  = subject;
+  document.getElementById('tvComments').textContent = comments || '\u2014';
+  document.getElementById('tvFeedback').textContent = '\u2014';
+  const st = document.getElementById('tvStatus');
+  st.textContent = 'Open';
+  st.className = 'pill-status pill-open';
+  document.getElementById('tvComplete').style.display = '';
+  document.getElementById('tvWarn').classList.remove('show');
+  document.getElementById('taskView').classList.add('active');
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+document.getElementById('tvBack').onclick = () => {
+  document.getElementById('taskView').classList.remove('active');
+};
+
+/* Feedback TT Owner — editable, mandatory */
+document.getElementById('tvFeedbackPencil').onclick = () => {
+  const cell = document.getElementById('tvFeedback');
+  if(cell.querySelector('textarea')) return;
+  const original = currentTask && currentTask.feedback ? currentTask.feedback : '';
+  const ta = document.createElement('textarea');
+  ta.className = 'inline-edit';
+  ta.value = original;
+  ta.placeholder = 'Response from the time tracker owner\u2026';
+  cell.innerHTML = '';
+  cell.appendChild(ta);
+  ta.focus();
+  ta.onblur = () => {
+    const v = ta.value.trim();
+    if(currentTask) currentTask.feedback = v;
+    cell.textContent = v || '\u2014';
+    if(v) document.getElementById('tvWarn').classList.remove('show');
+  };
+  ta.addEventListener('keydown', e => { if(e.key === 'Escape'){ ta.value = original; ta.blur(); } });
+};
+
+/* Mark Complete — only possible with feedback filled */
+document.getElementById('tvComplete').onclick = () => {
+  if(!currentTask) return;
+  if(!currentTask.feedback){
+    document.getElementById('tvWarn').classList.add('show');
+    return;
+  }
+  const st = document.getElementById('tvStatus');
+  st.textContent = 'Closed';
+  st.className = 'pill-status pill-closed';
+  document.getElementById('tvComplete').style.display = 'none';
+  document.getElementById('tvWarn').classList.remove('show');
+
+  currentTask.row.remove();
+  openTasks--;
+  const list = document.getElementById('taskList');
+  if(openTasks === 0) list.innerHTML = '<div class="empty">No open tasks.</div>';
+  render();
+  post('System','SY',`Task closed: ${currentTask.subject} \u2014 feedback from TT owner: \u201c${currentTask.feedback}\u201d`,'sys');
+};
+
+render();
+</script>
+</body>
+</html>
